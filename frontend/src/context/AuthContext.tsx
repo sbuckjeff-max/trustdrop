@@ -1,61 +1,86 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { getMe } from '../api/auth';
+import type { User } from '../types';
 
 interface AuthContextType {
-  user: any | null;
+  user: User | null;
   token: string | null;
-  login: (token: string, user: any) => void;
-  logout: () => void;
   loading: boolean;
+  isAuthenticated: boolean;
+  login: (nextToken: string, nextUser: User) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const userData = await getMe(token);
-          setUser(userData);
-        } catch (error) {
-          console.error('Failed to fetch user', error);
-          logout();
+    let isMounted = true;
+
+    async function bootstrapAuth() {
+      if (!token) {
+        if (isMounted) {
+          setLoading(false);
+        }
+        return;
+      }
+
+      try {
+        const me = await getMe(token);
+        if (isMounted) {
+          setUser(me);
+        }
+      } catch {
+        if (isMounted) {
+          setToken(null);
+          setUser(null);
+          localStorage.removeItem('token');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
         }
       }
-      setLoading(false);
-    };
+    }
 
-    initAuth();
+    void bootstrapAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
-  const login = (newToken: string, userData: any) => {
-    setToken(newToken);
-    setUser(userData);
-    localStorage.setItem('token', newToken);
-  };
-
-  const logout = () => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('token');
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextType>(
+    () => ({
+      user,
+      token,
+      loading,
+      isAuthenticated: Boolean(user && token),
+      login: (nextToken, nextUser) => {
+        setToken(nextToken);
+        setUser(nextUser);
+        localStorage.setItem('token', nextToken);
+      },
+      logout: () => {
+        setToken(null);
+        setUser(null);
+        localStorage.removeItem('token');
+      },
+    }),
+    [loading, token, user],
   );
-};
 
-export const useAuth = () => {
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-};
+}
