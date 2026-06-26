@@ -1,33 +1,31 @@
-import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.ts';
+import express from 'express';
+import authRoutes from './routes/auth';
+import courierRoutes from './routes/courier';
+import deliveriesRoutes from './routes/deliveries';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = Number.parseInt(process.env.PORT || '8000', 10);
 
 app.use(cors());
 app.use(express.json());
 
-// Request logger
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+app.use((req, _res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
-
-app.get('/api/health', (req, res) => {
+app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', message: 'TrustDrop API is running' });
 });
 
-app.get('/api/ping', (req, res) => {
-  res.json({ message: 'pong' });
-});
+app.use('/api/auth', authRoutes);
+app.use('/api/deliveries', deliveriesRoutes);
+app.use('/api/courier', courierRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Backend server is running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend server is running on http://0.0.0.0:${PORT}`);
 });

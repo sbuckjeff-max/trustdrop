@@ -1,22 +1,37 @@
-import axios from 'axios';
+import { apiClient, authHeaders } from './client';
+import type { User, UserRole } from '../types';
 
-const API_URL = '/api';
+interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  role: Extract<UserRole, 'dealer' | 'courier'>;
+}
 
-export const register = async (userData: any) => {
-  const response = await axios.post(`${API_URL}/auth/register`, userData);
-  return response.data;
-};
+interface LoginPayload {
+  email: string;
+  password: string;
+}
 
-export const login = async (credentials: any) => {
-  const response = await axios.post(`${API_URL}/auth/login`, credentials);
-  return response.data;
-};
+interface AuthResponse {
+  token: string;
+  user: User;
+}
 
-export const getMe = async (token: string) => {
-  const response = await axios.get(`${API_URL}/auth/me`, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
+export async function register(userData: RegisterPayload) {
+  const response = await apiClient.post('/auth/register', userData);
+  return response.data as { message: string };
+}
+
+export async function login(credentials: LoginPayload) {
+  const response = await apiClient.post('/auth/login', credentials);
+  return response.data as AuthResponse;
+}
+
+export async function getMe(token: string) {
+  const response = await apiClient.get('/auth/me', {
+    headers: authHeaders(token),
   });
-  return response.data;
-};
+
+  return response.data as User;
+}
