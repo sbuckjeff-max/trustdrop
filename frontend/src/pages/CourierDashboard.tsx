@@ -66,7 +66,7 @@ export default function CourierDashboard() {
         {loading ? <p>Loading deliveries…</p> : null}
 
         <h2>Available Deliveries</h2>
-        {availableDeliveries.length === 0 ? <p>No approved deliveries available right now.</p> : null}
+        {availableDeliveries.length === 0 ? <p>No deliveries available right now. Check back soon or refresh.</p> : null}
         <div className="list-grid">
           {availableDeliveries.map((delivery) => (
             <article key={delivery.id} className="list-card">

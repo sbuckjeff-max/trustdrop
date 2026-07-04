@@ -38,10 +38,6 @@ router.get('/available-deliveries', async (req: AuthRequest, res) => {
         dealer.name AS dealer_name,
         dealer.email AS dealer_email
       FROM deliveries d
-      INNER JOIN dealer_courier_approvals approvals
-        ON approvals.dealer_id = d.dealer_id
-       AND approvals.courier_id = ${sql.literal(courierId)}
-       AND approvals.status = 'approved'
       INNER JOIN users dealer ON dealer.id = d.dealer_id
       WHERE d.status = 'requested'
         AND d.courier_id IS NULL
@@ -74,10 +70,6 @@ router.post('/accept/:id', async (req: AuthRequest, res) => {
     const delivery = await queryOne<DeliveryRecord>(
       `SELECT d.*
        FROM deliveries d
-       INNER JOIN dealer_courier_approvals approvals
-         ON approvals.dealer_id = d.dealer_id
-        AND approvals.courier_id = ${sql.literal(courierId)}
-        AND approvals.status = 'approved'
        WHERE d.id = ${sql.literal(deliveryId)}
          AND d.status = 'requested'
          AND d.courier_id IS NULL
@@ -86,7 +78,7 @@ router.post('/accept/:id', async (req: AuthRequest, res) => {
 
     if (!delivery) {
       res.status(404).json({
-        message: 'Delivery is not available to accept. You may not be approved by this dealer or it may already be assigned.',
+        message: 'Delivery is not available to accept. It may already be assigned to another courier.',
       });
       return;
     }
