@@ -25,15 +25,20 @@ export default function Login() {
       login(authResponse.token, authResponse.user);
       navigate(authResponse.user.role === 'dealer' ? '/dealer/dashboard' : '/courier/dashboard', { replace: true });
     } catch (requestError: any) {
-      setError(requestError.response?.data?.message ?? 'Unable to sign in. Please try again.');
+      const message = requestError.response?.data?.message ?? 'Unable to sign in. Please try again.';
+      setError(
+        message === 'Invalid credentials'
+          ? 'Invalid email or password. Make sure you are using the correct account for your role (dealer or courier).'
+          : message,
+      );
     }
   }
 
   return (
     <main className="page">
       <section className="card auth-card">
-        <h1>TrustDrop Login</h1>
-        <p className="subtitle">Secure access for dealers and couriers.</p>
+        <h1>TrustDrop</h1>
+        <p className="subtitle">Sign in to your dealer or courier account.</p>
 
         {successMessage ? <div className="alert success">{successMessage}</div> : null}
         {error ? <div className="alert error">{error}</div> : null}
@@ -41,17 +46,32 @@ export default function Login() {
         <form className="form-grid" onSubmit={handleSubmit}>
           <label>
             Email
-            <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <input
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
           </label>
           <label>
             Password
-            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
           </label>
           <button type="submit">Sign in</button>
         </form>
 
         <p>
-          Need an account? <Link to="/register">Create one</Link>
+          <Link to="/register">Create an account</Link>
+        </p>
+        <p className="muted">
+          <small>Need help? <Link to="/register">Register as a dealer or courier first</Link>, then sign in here.</small>
         </p>
       </section>
     </main>
