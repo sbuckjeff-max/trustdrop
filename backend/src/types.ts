@@ -25,3 +25,13 @@ export interface DeliveryRecord {
   dealer_name?: string | null;
   dealer_email?: string | null;
 }
+
+export interface CourierLocationRecord {
+  id: number;
+  courier_id: number;
+  delivery_id: number;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  timestamp: string;
+}

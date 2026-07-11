@@ -4,6 +4,7 @@ import express from 'express';
 import authRoutes from './routes/auth';
 import courierRoutes from './routes/courier';
 import deliveriesRoutes from './routes/deliveries';
+import locationRoutes from './routes/location';
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
+app.use('/api', locationRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/courier', courierRoutes);
 
