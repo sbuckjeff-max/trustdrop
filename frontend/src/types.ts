@@ -33,3 +33,18 @@ export interface Delivery {
   dealer_email?: string | null;
   history?: StatusHistoryEntry[];
 }
+
+export interface CourierLocation {
+  id: number;
+  courier_id: number;
+  delivery_id: number;
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  timestamp: string;
+}
+
+export interface DeliveryLocationData {
+  latest: CourierLocation | null;
+  trail: CourierLocation[];
+}

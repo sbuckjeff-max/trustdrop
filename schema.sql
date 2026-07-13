@@ -78,3 +78,15 @@ CREATE TABLE IF NOT EXISTS status_history (
   FOREIGN KEY (delivery_id) REFERENCES deliveries(id),
   FOREIGN KEY (changed_by) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS courier_locations (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  courier_id INTEGER NOT NULL,
+  delivery_id INTEGER NOT NULL,
+  latitude REAL NOT NULL,
+  longitude REAL NOT NULL,
+  accuracy REAL,
+  timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (courier_id) REFERENCES users(id),
+  FOREIGN KEY (delivery_id) REFERENCES deliveries(id)
+);
