@@ -6,6 +6,7 @@ interface RegisterPayload {
   email: string;
   password: string;
   role: Extract<UserRole, 'dealer' | 'courier'>;
+  tosAccepted: boolean;
 }
 
 interface LoginPayload {

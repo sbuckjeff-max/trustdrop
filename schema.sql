@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL CHECK(role IN ('dealer', 'courier', 'admin')),
   name TEXT NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  tos_accepted_at DATETIME
 );
 
 CREATE TABLE IF NOT EXISTS deliveries (
