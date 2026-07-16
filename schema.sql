@@ -90,3 +90,13 @@ CREATE TABLE IF NOT EXISTS courier_locations (
   FOREIGN KEY (courier_id) REFERENCES users(id),
   FOREIGN KEY (delivery_id) REFERENCES deliveries(id)
 );
+
+CREATE TABLE IF NOT EXISTS delivery_photos (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  delivery_id INTEGER NOT NULL,
+  courier_id INTEGER NOT NULL,
+  photo_data TEXT NOT NULL,
+  captured_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (delivery_id) REFERENCES deliveries(id),
+  FOREIGN KEY (courier_id) REFERENCES users(id)
+);

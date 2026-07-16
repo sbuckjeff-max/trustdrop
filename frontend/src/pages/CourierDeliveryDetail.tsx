@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getCourierDelivery, updateCourierDeliveryStatus } from '../api/courier';
 import { reportLocation } from '../api/location';
+import { uploadDeliveryPhoto } from '../api/photos';
 import { useAuth } from '../context/AuthContext';
 import type { Delivery, DeliveryStatus } from '../types';
 import { formatCurrency, formatDate, statusLabel } from '../utils/format';
@@ -24,6 +25,13 @@ export default function CourierDeliveryDetail() {
   const [updating, setUpdating] = useState(false);
   const [locationSharing, setLocationSharing] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+
+  // Photo capture state
+  const [showCamera, setShowCamera] = useState(false);
+  const [photoStream, setPhotoStream] = useState<MediaStream | null>(null);
+  const [photoTaken, setPhotoTaken] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   async function loadDetail() {
     if (!token || Number.isNaN(deliveryId)) {
@@ -90,6 +98,59 @@ export default function CourierDeliveryDetail() {
     }
     setLocationSharing(false);
   }, []);
+
+  // Camera handlers
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false,
+      });
+      setPhotoStream(stream);
+      setShowCamera(true);
+      setPhotoTaken(false);
+      // Connect stream to video element after render
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 100);
+    } catch {
+      setError('Could not access camera. Please grant camera permissions.');
+    }
+  }
+
+  function stopCamera() {
+    if (photoStream) {
+      for (const track of photoStream.getTracks()) {
+        track.stop();
+      }
+      setPhotoStream(null);
+    }
+    setShowCamera(false);
+  }
+
+  async function capturePhoto() {
+    if (!videoRef.current || !canvasRef.current || !token || !delivery) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const dataUri = canvas.toDataURL('image/jpeg', 0.85);
+
+    try {
+      await uploadDeliveryPhoto(token, delivery.id, dataUri);
+      setPhotoTaken(true);
+      stopCamera();
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.message ?? 'Failed to upload photo.');
+    }
+  }
 
   // Auto-start location sharing when delivery becomes active
   useEffect(() => {
@@ -188,6 +249,44 @@ export default function CourierDeliveryDetail() {
                     Start sharing
                   </button>
                 )}
+              </div>
+            ) : null}
+
+            {/* Photo capture at handoff */}
+            {isActive ? (
+              <div className="photo-section" style={{ marginTop: '12px' }}>
+                <h3>Handoff Photo</h3>
+                <p className="muted">Capture a photo at delivery for verification.</p>
+
+                {photoTaken ? (
+                  <p className="alert success">📸 Photo saved successfully!</p>
+                ) : null}
+
+                {showCamera ? (
+                  <div style={{ position: 'relative', maxWidth: '100%' }}>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{ width: '100%', borderRadius: '8px', background: '#000' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button type="button" onClick={capturePhoto}>
+                        📸 Capture
+                      </button>
+                      <button type="button" className="button secondary" onClick={stopCamera}>
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button type="button" onClick={startCamera}>
+                    📷 Take handoff photo
+                  </button>
+                )}
+
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
               </div>
             ) : null}
 
