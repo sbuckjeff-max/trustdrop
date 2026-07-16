@@ -28,11 +28,12 @@ function createTokenPayload(user: Pick<UserRow, 'id' | 'email' | 'role' | 'name'
 
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, role } = req.body as {
+    const { email, password, name, role, tosAccepted } = req.body as {
       email?: string;
       password?: string;
       name?: string;
       role?: UserRole;
+      tosAccepted?: boolean;
     };
 
     if (!email || !password || !name || !role) {
@@ -42,6 +43,11 @@ router.post('/register', async (req, res) => {
 
     if (!['dealer', 'courier'].includes(role)) {
       res.status(400).json({ message: 'Invalid role' });
+      return;
+    }
+
+    if (!tosAccepted) {
+      res.status(400).json({ message: 'You must accept the Terms of Service to register.' });
       return;
     }
 
@@ -59,9 +65,9 @@ router.post('/register', async (req, res) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     await queryOne(
-      `INSERT INTO users (email, password_hash, name, role) VALUES (${sql.literal(normalizedEmail)}, ${sql.literal(
+      `INSERT INTO users (email, password_hash, name, role, tos_accepted_at) VALUES (${sql.literal(normalizedEmail)}, ${sql.literal(
         passwordHash,
-      )}, ${sql.literal(name.trim())}, ${sql.literal(role)})`,
+      )}, ${sql.literal(name.trim())}, ${sql.literal(role)}, datetime('now'))`,
     );
 
     res.status(201).json({ message: 'User registered successfully' });

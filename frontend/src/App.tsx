@@ -8,6 +8,7 @@ import DealerDeliveryDetail from './pages/DealerDeliveryDetail';
 import Login from './pages/Login';
 import NewDelivery from './pages/NewDelivery';
 import Register from './pages/Register';
+import TermsOfService from './pages/TermsOfService';
 
 function HomeRedirect() {
   const { user, loading } = useAuth();
@@ -38,6 +39,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/tos" element={<TermsOfService />} />
+          <Route path="/demo" element={<DemoAccess />} />
 
           <Route element={<ProtectedRoute allowedRoles={['dealer']} />}>
             <Route path="/dealer/dashboard" element={<DealerDashboard />} />
