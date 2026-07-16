@@ -5,6 +5,7 @@ import authRoutes from './routes/auth';
 import courierRoutes from './routes/courier';
 import deliveriesRoutes from './routes/deliveries';
 import locationRoutes from './routes/location';
+import photoRoutes from './routes/photos';
 
 dotenv.config();
 
@@ -12,7 +13,7 @@ const app = express();
 const PORT = Number.parseInt(process.env.PORT || '8000', 10);
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '8mb' }));
 
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);
@@ -25,6 +26,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api', locationRoutes);
+app.use('/api', photoRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/courier', courierRoutes);
 

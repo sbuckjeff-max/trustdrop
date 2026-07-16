@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getDealerDelivery } from '../api/deliveries';
 import { getDeliveryLocations } from '../api/location';
+import { getDeliveryPhoto, type PhotoResponse } from '../api/photos';
 import { useAuth } from '../context/AuthContext';
 import type { CourierLocation, Delivery } from '../types';
 import { formatCurrency, formatDate, statusLabel } from '../utils/format';
@@ -24,6 +25,7 @@ export default function DealerDeliveryDetail() {
   const mapInstanceRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
+  const [photo, setPhoto] = useState<PhotoResponse | null>(null);
 
   useEffect(() => {
     if (!token || Number.isNaN(deliveryId)) {
@@ -45,6 +47,22 @@ export default function DealerDeliveryDetail() {
 
     void loadDetail();
   }, [deliveryId, token]);
+
+  // Fetch handoff photo
+  useEffect(() => {
+    if (!delivery || !token) return;
+
+    async function fetchPhoto() {
+      try {
+        const p = await getDeliveryPhoto(token, delivery!.id);
+        setPhoto(p);
+      } catch {
+        setPhoto(null);
+      }
+    }
+
+    void fetchPhoto();
+  }, [delivery, token]);
 
   // Poll for location updates when delivery is active
   useEffect(() => {
@@ -180,6 +198,18 @@ export default function DealerDeliveryDetail() {
             <p>
               <strong>Created:</strong> {formatDate(delivery.created_at)}
             </p>
+
+            {photo ? (
+              <div>
+                <h2>Handoff Photo</h2>
+                <p className="muted">Captured: {new Date(photo.capturedAt + 'Z').toLocaleString()}</p>
+                <img
+                  src={photo.photoData}
+                  alt="Delivery handoff verification"
+                  style={{ maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--border-color, #e5e7eb)' }}
+                />
+              </div>
+            ) : null}
 
             {isActive ? (
               <div>
