@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getDealerDelivery } from '../api/deliveries';
 import { getDeliveryLocations } from '../api/location';
 import { getDeliveryPhoto, type PhotoResponse } from '../api/photos';
+import { getDeliverySignature, type SignatureResponse } from '../api/signatures';
 import { useAuth } from '../context/AuthContext';
 import type { CourierLocation, Delivery } from '../types';
 import { formatCurrency, formatDate, statusLabel } from '../utils/format';
@@ -26,6 +27,7 @@ export default function DealerDeliveryDetail() {
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
   const [photo, setPhoto] = useState<PhotoResponse | null>(null);
+  const [signature, setSignature] = useState<SignatureResponse | null>(null);
 
   useEffect(() => {
     if (!token || Number.isNaN(deliveryId)) {
@@ -62,6 +64,22 @@ export default function DealerDeliveryDetail() {
     }
 
     void fetchPhoto();
+  }, [delivery, token]);
+
+  // Fetch handoff signature
+  useEffect(() => {
+    if (!delivery || !token) return;
+
+    async function fetchSignature() {
+      try {
+        const s = await getDeliverySignature(token, delivery!.id);
+        setSignature(s);
+      } catch {
+        setSignature(null);
+      }
+    }
+
+    void fetchSignature();
   }, [delivery, token]);
 
   // Poll for location updates when delivery is active
@@ -207,6 +225,23 @@ export default function DealerDeliveryDetail() {
                   src={photo.photoData}
                   alt="Delivery handoff verification"
                   style={{ maxWidth: '100%', borderRadius: '8px', border: '1px solid var(--border-color, #e5e7eb)' }}
+                />
+              </div>
+            ) : null}
+
+            {signature ? (
+              <div>
+                <h2>Buyer Signature</h2>
+                <p className="muted">Signed: {new Date(signature.capturedAt + 'Z').toLocaleString()}</p>
+                <img
+                  src={signature.signatureData}
+                  alt="Buyer's handoff signature"
+                  style={{
+                    maxWidth: '100%',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color, #e5e7eb)',
+                    background: '#fff',
+                  }}
                 />
               </div>
             ) : null}

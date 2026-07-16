@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getCourierDelivery, updateCourierDeliveryStatus } from '../api/courier';
 import { reportLocation } from '../api/location';
 import { uploadDeliveryPhoto } from '../api/photos';
+import { uploadDeliverySignature } from '../api/signatures';
 import { useAuth } from '../context/AuthContext';
 import type { Delivery, DeliveryStatus } from '../types';
 import { formatCurrency, formatDate, statusLabel } from '../utils/format';
@@ -32,6 +33,12 @@ export default function CourierDeliveryDetail() {
   const [photoTaken, setPhotoTaken] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Signature pad state
+  const sigCanvasRef = useRef<HTMLCanvasElement>(null);
+  const sigDrawingRef = useRef(false);
+  const [signatureSaved, setSignatureSaved] = useState(false);
+  const [signatureUploading, setSignatureUploading] = useState(false);
 
   async function loadDetail() {
     if (!token || Number.isNaN(deliveryId)) {
@@ -150,6 +157,100 @@ export default function CourierDeliveryDetail() {
     } catch (requestError: any) {
       setError(requestError.response?.data?.message ?? 'Failed to upload photo.');
     }
+  }
+
+  // Signature pad handlers
+  function getSigPos(e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    if ('touches' in e) {
+      if (e.touches.length === 0) return null;
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function sigStart(e: React.MouseEvent | React.TouchEvent) {
+    e.preventDefault();
+    const pos = getSigPos(e);
+    if (!pos) return;
+    sigDrawingRef.current = true;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+    ctx.strokeStyle = '#1e3a5f';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+  }
+
+  function sigMove(e: React.MouseEvent | React.TouchEvent) {
+    e.preventDefault();
+    if (!sigDrawingRef.current) return;
+    const pos = getSigPos(e);
+    if (!pos) return;
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+  }
+
+  function sigEnd() {
+    sigDrawingRef.current = false;
+  }
+
+  function clearSignature() {
+    const canvas = sigCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  async function confirmSignature() {
+    const canvas = sigCanvasRef.current;
+    if (!canvas || !token || !delivery) return;
+
+    // Check if there's any drawing (non-white pixels)
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const hasDrawing = imageData.data.some((v, i) => i % 4 !== 3 && v < 240);
+    if (!hasDrawing) {
+      setError('Please draw a signature before confirming.');
+      return;
+    }
+
+    setSignatureUploading(true);
+    setError('');
+
+    const dataUri = canvas.toDataURL('image/png');
+
+    try {
+      await uploadDeliverySignature(token, delivery.id, dataUri);
+      setSignatureSaved(true);
+    } catch (requestError: any) {
+      setError(requestError.response?.data?.message ?? 'Failed to upload signature.');
+    } finally {
+      setSignatureUploading(false);
+    }
+  }
+
+  // Initialize canvas background
+  function initSigCanvas(canvas: HTMLCanvasElement | null) {
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   // Auto-start location sharing when delivery becomes active
@@ -287,6 +388,61 @@ export default function CourierDeliveryDetail() {
                 )}
 
                 <canvas ref={canvasRef} style={{ display: 'none' }} />
+              </div>
+            ) : null}
+
+            {/* Signature pad — buyer signs to confirm receipt */}
+            {delivery.status === 'in_transit' ? (
+              <div className="signature-section" style={{ marginTop: '12px' }}>
+                <h3>Buyer Signature</h3>
+                <p className="muted">
+                  Have the buyer sign below to confirm receipt of the item.
+                </p>
+
+                {signatureSaved ? (
+                  <p className="alert success">✍️ Signature saved successfully!</p>
+                ) : (
+                  <>
+                    <div
+                      style={{
+                        border: '2px solid var(--border-color, #d1d5db)',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        backgroundColor: '#fff',
+                        touchAction: 'none',
+                      }}
+                    >
+                      <canvas
+                        ref={(el) => {
+                          sigCanvasRef.current = el;
+                          initSigCanvas(el);
+                        }}
+                        width={500}
+                        height={180}
+                        style={{ width: '100%', height: 'auto', cursor: 'crosshair', display: 'block' }}
+                        onMouseDown={sigStart}
+                        onMouseMove={sigMove}
+                        onMouseUp={sigEnd}
+                        onMouseLeave={sigEnd}
+                        onTouchStart={sigStart}
+                        onTouchMove={sigMove}
+                        onTouchEnd={sigEnd}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button type="button" onClick={clearSignature} className="button secondary">
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void confirmSignature()}
+                        disabled={signatureUploading}
+                      >
+                        {signatureUploading ? 'Saving…' : 'Confirm signature'}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             ) : null}
 
