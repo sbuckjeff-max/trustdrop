@@ -100,3 +100,13 @@ CREATE TABLE IF NOT EXISTS delivery_photos (
   FOREIGN KEY (delivery_id) REFERENCES deliveries(id),
   FOREIGN KEY (courier_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS delivery_signatures (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  delivery_id INTEGER NOT NULL,
+  courier_id INTEGER NOT NULL,
+  signature_data TEXT NOT NULL,
+  captured_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (delivery_id) REFERENCES deliveries(id),
+  FOREIGN KEY (courier_id) REFERENCES users(id)
+);

@@ -6,6 +6,7 @@ import courierRoutes from './routes/courier';
 import deliveriesRoutes from './routes/deliveries';
 import locationRoutes from './routes/location';
 import photoRoutes from './routes/photos';
+import signatureRoutes from './routes/signatures';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api', locationRoutes);
 app.use('/api', photoRoutes);
+app.use('/api', signatureRoutes);
 app.use('/api/deliveries', deliveriesRoutes);
 app.use('/api/courier', courierRoutes);
 
