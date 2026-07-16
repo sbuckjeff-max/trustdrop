@@ -1,15 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { getDealerDelivery } from '../api/deliveries';
 import { getDeliveryLocations } from '../api/location';
 import { useAuth } from '../context/AuthContext';
 import type { CourierLocation, Delivery } from '../types';
 import { formatCurrency, formatDate, statusLabel } from '../utils/format';
-
-// Leaflet CSS is imported once via a <link> in index.html or we add it here
 import 'leaflet/dist/leaflet.css';
 
-const POLL_INTERVAL = 10000; // 10 seconds
+const POLL_INTERVAL = 10000;
 const ACTIVE_STATUSES = ['picked_up', 'in_transit'];
 
 export default function DealerDeliveryDetail() {
@@ -20,11 +18,14 @@ export default function DealerDeliveryDetail() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [locations, setLocations] = useState<CourierLocation[]>([]);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const leafletRef = useRef<any>(null);
+  const markersLayerRef = useRef<any>(null);
   const polylineRef = useRef<any>(null);
+  const initializedRef = useRef(false);
 
+  // Load delivery detail
   useEffect(() => {
     if (!token || Number.isNaN(deliveryId)) {
       setLoading(false);
@@ -46,9 +47,14 @@ export default function DealerDeliveryDetail() {
     void loadDetail();
   }, [deliveryId, token]);
 
-  // Poll for location updates when delivery is active
+  const isActive = useMemo(
+    () => delivery ? ACTIVE_STATUSES.includes(delivery.status) : false,
+    [delivery],
+  );
+
+  // Poll for location updates
   useEffect(() => {
-    if (!delivery || !token || !ACTIVE_STATUSES.includes(delivery.status)) return;
+    if (!delivery || !token || !isActive) return;
 
     async function pollLocations() {
       try {
@@ -62,15 +68,17 @@ export default function DealerDeliveryDetail() {
     void pollLocations();
     const interval = setInterval(pollLocations, POLL_INTERVAL);
     return () => clearInterval(interval);
-  }, [delivery, token]);
+  }, [delivery, token, isActive]);
 
-  // Initialize Leaflet map
+  // Initialize Leaflet map (runs once when delivery is active)
   useEffect(() => {
-    if (!mapRef.current || !delivery || !ACTIVE_STATUSES.includes(delivery.status)) return;
+    if (!mapContainerRef.current || !isActive || initializedRef.current) return;
 
-    let L: any;
-    import('leaflet').then((mod) => {
-      L = mod.default;
+    let cancelled = false;
+
+    async function initMap() {
+      const L = (await import('leaflet')).default;
+      if (cancelled || !mapContainerRef.current) return;
 
       // Fix default icon paths
       delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -80,65 +88,68 @@ export default function DealerDeliveryDetail() {
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
 
-      if (!mapInstanceRef.current && mapRef.current) {
-        const map = L.map(mapRef.current).setView([34.0522, -118.2437], 12); // Default to LA area
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 19,
-        }).addTo(map);
-        mapInstanceRef.current = map;
-      }
-    });
+      leafletRef.current = L;
+
+      const map = L.map(mapContainerRef.current).setView([34.0522, -118.2437], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+      }).addTo(map);
+
+      mapRef.current = map;
+      initializedRef.current = true;
+    }
+
+    void initMap();
 
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      cancelled = true;
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
       }
+      initializedRef.current = false;
     };
-  }, [delivery?.status]);
+  }, [isActive]);
 
-  // Update markers and polyline on map
+  // Update markers and polyline when locations change
   useEffect(() => {
-    if (!mapInstanceRef.current || locations.length === 0) return;
-
-    const L = (window as any).L;
-    if (!L) return;
+    const map = mapRef.current;
+    const L = leafletRef.current;
+    if (!map || !L || locations.length === 0) return;
 
     // Clear old markers
-    for (const marker of markersRef.current) {
-      mapInstanceRef.current.removeLayer(marker);
+    if (markersLayerRef.current) {
+      map.removeLayer(markersLayerRef.current);
     }
-    markersRef.current = [];
-
-    // Clear old polyline
     if (polylineRef.current) {
-      mapInstanceRef.current.removeLayer(polylineRef.current);
-      polylineRef.current = null;
+      map.removeLayer(polylineRef.current);
     }
 
-    // Add trail polyline
+    const group = L.layerGroup().addTo(map);
+    markersLayerRef.current = group;
+
+    // Trail polyline
     const latlngs = locations.map((loc) => [loc.latitude, loc.longitude] as [number, number]);
     if (latlngs.length >= 2) {
-      polylineRef.current = L.polyline(latlngs, { color: '#3b82f6', weight: 4, opacity: 0.7 }).addTo(
-        mapInstanceRef.current,
-      );
+      polylineRef.current = L.polyline(latlngs, {
+        color: '#3b82f6',
+        weight: 4,
+        opacity: 0.7,
+      }).addTo(map);
     }
 
-    // Add latest position marker
+    // Latest position marker
     const latest = locations[locations.length - 1];
-    if (latest) {
-      const marker = L.marker([latest.latitude, latest.longitude])
-        .bindPopup(
-          `Courier position<br>${new Date(latest.timestamp + 'Z').toLocaleTimeString()}<br>Accuracy: ${latest.accuracy ? `${Math.round(latest.accuracy)}m` : 'N/A'}`,
-        )
-        .addTo(mapInstanceRef.current);
-      markersRef.current.push(marker);
-      mapInstanceRef.current.setView([latest.latitude, latest.longitude], 14);
-    }
-  }, [locations]);
+    L.marker([latest.latitude, latest.longitude])
+      .bindPopup(
+        `Courier position<br>${new Date(latest.timestamp + 'Z').toLocaleTimeString()}<br>` +
+        `Accuracy: ${latest.accuracy ? `${Math.round(latest.accuracy)}m` : 'N/A'}`,
+      )
+      .addTo(group);
 
-  const isActive = delivery && ACTIVE_STATUSES.includes(delivery.status);
+    map.setView([latest.latitude, latest.longitude], 14);
+  }, [locations]);
 
   return (
     <main className="page">
@@ -192,7 +203,7 @@ export default function DealerDeliveryDetail() {
                   <p className="muted">Waiting for courier location data…</p>
                 )}
                 <div
-                  ref={mapRef}
+                  ref={mapContainerRef}
                   style={{ width: '100%', height: '400px', borderRadius: '8px', marginTop: '8px' }}
                 />
               </div>

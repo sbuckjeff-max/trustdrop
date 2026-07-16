@@ -114,4 +114,36 @@ router.get('/me', authenticate, (req: AuthRequest, res) => {
   res.json(req.user);
 });
 
+router.post('/demo-login', async (req, res) => {
+  try {
+    const { role } = req.body as { role?: UserRole };
+
+    if (!role || !['dealer', 'courier'].includes(role)) {
+      res.status(400).json({ message: 'Role must be dealer or courier' });
+      return;
+    }
+
+    const demoEmail = role === 'dealer'
+      ? 'demo-dealer@trustdrop.test'
+      : 'demo-courier@trustdrop.test';
+
+    const user = await queryOne<UserRow>(
+      `SELECT id, email, password_hash, role, name FROM users WHERE email = ${sql.literal(demoEmail)} LIMIT 1`,
+    );
+
+    if (!user) {
+      res.status(500).json({ message: 'Demo account not found' });
+      return;
+    }
+
+    const payload = createTokenPayload(user);
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+
+    res.json({ token, user: payload });
+  } catch (error) {
+    console.error('Demo login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 export default router;

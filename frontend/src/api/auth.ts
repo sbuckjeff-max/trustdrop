@@ -35,3 +35,8 @@ export async function getMe(token: string) {
 
   return response.data as User;
 }
+
+export async function demoLogin(role: Extract<UserRole, 'dealer' | 'courier'>) {
+  const response = await apiClient.post('/auth/demo-login', { role });
+  return response.data as AuthResponse;
+}

@@ -73,6 +73,14 @@ export default function Login() {
         <p className="muted">
           <small>Need help? <Link to="/register">Register as a dealer or courier first</Link>, then sign in here.</small>
         </p>
+
+        <hr style={{ margin: '16px 0', border: 'none', borderTop: '1px solid var(--border-color, #e5e7eb)' }} />
+        <div style={{ textAlign: 'center' }}>
+          <p style={{ fontWeight: 600, marginBottom: '4px' }}>Just looking around?</p>
+          <Link to="/demo" style={{ fontSize: '0.95rem' }}>
+            Try the demo → instant access, no sign-up
+          </Link>
+        </div>
       </section>
     </main>
   );
