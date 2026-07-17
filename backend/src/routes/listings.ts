@@ -1,10 +1,39 @@
 import express from 'express';
+// @ts-ignore - multer types may not be installed
+import multer from 'multer';
+import path from 'node:path';
 import { query, queryOne, sql } from '../db';
 import { authenticate } from '../middleware/auth';
 import type { AuthRequest } from '../middleware/auth';
 import type { ListingRecord } from '../types';
 
 const router = express.Router();
+
+const UPLOADS_DIR = path.resolve(process.cwd(), '..', 'uploads');
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const MAX_FILES = 10;
+
+const storage = multer.diskStorage({
+  destination: (_req: any, _file: any, cb: any) => cb(null, UPLOADS_DIR),
+  filename: (_req: any, file: any, cb: any) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `${uniqueSuffix}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: MAX_FILE_SIZE, files: MAX_FILES },
+  fileFilter: (_req: any, file: any, cb: any) => {
+    const allowed = /\.(jpg|jpeg|png|gif|webp)$/i;
+    if (allowed.test(path.extname(file.originalname))) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files (jpg, jpeg, png, gif, webp) are allowed'));
+    }
+  },
+});
 
 // Public: browse active listings with search, filter, sort, pagination
 router.get('/', async (req, res) => {
@@ -215,6 +244,68 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get listing error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Authenticated: upload images to a listing (dealer only, must own listing)
+router.post('/:id/images', authenticate, upload.array('images', MAX_FILES), async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.id;
+    const userRole = req.user?.role;
+    if (!userId || userRole !== 'dealer') {
+      res.status(403).json({ message: 'Only dealers can upload images' });
+      return;
+    }
+
+    const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const listingId = Number.parseInt(rawId ?? '', 10);
+    if (Number.isNaN(listingId)) {
+      res.status(400).json({ message: 'Invalid listing id' });
+      return;
+    }
+
+    // Verify dealer owns this listing
+    const listing = await queryOne<{ seller_id: number; images: string }>(
+      `SELECT seller_id, images FROM listings WHERE id = ${sql.literal(listingId)} LIMIT 1`,
+    );
+
+    if (!listing) {
+      res.status(404).json({ message: 'Listing not found' });
+      return;
+    }
+
+    if (listing.seller_id !== userId) {
+      res.status(403).json({ message: 'You can only upload images to your own listings' });
+      return;
+    }
+
+    const files = (req as any).files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      res.status(400).json({ message: 'No image files provided' });
+      return;
+    }
+
+    const existingImages: string[] = JSON.parse(listing.images || '[]');
+    if (existingImages.length + files.length > MAX_FILES) {
+      res.status(400).json({ message: `Maximum ${MAX_FILES} images per listing. You already have ${existingImages.length}.` });
+      return;
+    }
+
+    const newUrls = files.map((f) => `/uploads/${f.filename}`);
+    const allImages = [...existingImages, ...newUrls];
+
+    await query(
+      `UPDATE listings SET images = ${sql.literal(JSON.stringify(allImages))}, updated_at = CURRENT_TIMESTAMP WHERE id = ${sql.literal(listingId)}`,
+    );
+
+    res.json({ images: allImages, added: newUrls.length, total: allImages.length });
+  } catch (error: any) {
+    if (error?.message?.includes('Only image files')) {
+      res.status(400).json({ message: error.message });
+      return;
+    }
+    console.error('Upload images error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

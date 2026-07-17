@@ -125,6 +125,13 @@ export default function MarketplaceFeed() {
                   className="card listing-card"
                   style={{ textDecoration: 'none', color: 'inherit', padding: '16px' }}
                 >
+                  {item.images && item.images.length > 0 ? (
+                    <img
+                      src={item.images[0]}
+                      alt={item.title}
+                      style={{ width: '100%', height: '160px', objectFit: 'cover', borderRadius: '6px', marginBottom: '8px' }}
+                    />
+                  ) : null}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
                     <span className="status-pill" style={{ fontSize: '0.75rem' }}>
                       {CATEGORY_LABELS[item.category] ?? item.category}

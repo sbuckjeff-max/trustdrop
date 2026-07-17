@@ -97,6 +97,27 @@ export default function ListingDetail() {
               <p style={{ whiteSpace: 'pre-wrap' }}>{listing.description}</p>
             </div>
 
+            {/* Images */}
+            {listing.images && listing.images.length > 0 ? (
+              <div>
+                <h2>Images</h2>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {listing.images.map((img, i) => (
+                    <a key={img} href={img} target="_blank" rel="noreferrer">
+                      <img
+                        src={img}
+                        alt={`${listing.title} - ${i + 1}`}
+                        style={{
+                          width: '120px', height: '120px', objectFit: 'cover',
+                          borderRadius: '8px', border: '1px solid #e5e7eb', cursor: 'pointer',
+                        }}
+                      />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
             <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
               {isAuthenticated ? (
                 <button
