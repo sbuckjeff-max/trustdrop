@@ -1,6 +1,10 @@
-export type UserRole = 'dealer' | 'courier' | 'admin';
+export type UserRole = 'dealer' | 'courier' | 'buyer' | 'admin';
 
 export type DeliveryStatus = 'requested' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered';
+
+export type ListingCategory = 'coin' | 'paper_money' | 'bullion' | 'scrap';
+export type ListingStatus = 'active' | 'sold' | 'draft';
+export type ShippingOption = 'seller_ships' | 'local_pickup' | 'trustdrop_delivery';
 
 export interface AuthUser {
   id: number;
@@ -34,4 +38,22 @@ export interface CourierLocationRecord {
   longitude: number;
   accuracy: number | null;
   timestamp: string;
+}
+
+export interface ListingRecord {
+  id: number;
+  seller_id: number;
+  title: string;
+  description: string;
+  category: ListingCategory;
+  denomination: string | null;
+  metal_type: string | null;
+  weight_grams: number | null;
+  price_cents: number;
+  shipping_option: ShippingOption;
+  images: string;
+  status: ListingStatus;
+  created_at: string;
+  updated_at: string;
+  seller_name?: string | null;
 }

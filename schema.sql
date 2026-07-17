@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('dealer', 'courier', 'admin')),
+  role TEXT NOT NULL CHECK(role IN ('dealer', 'courier', 'buyer', 'admin')),
   name TEXT NOT NULL,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   tos_accepted_at DATETIME
@@ -110,4 +110,22 @@ CREATE TABLE IF NOT EXISTS delivery_signatures (
   captured_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (delivery_id) REFERENCES deliveries(id),
   FOREIGN KEY (courier_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS listings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  seller_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  category TEXT NOT NULL CHECK(category IN ('coin', 'paper_money', 'bullion', 'scrap')),
+  denomination TEXT,
+  metal_type TEXT,
+  weight_grams REAL,
+  price_cents INTEGER NOT NULL,
+  shipping_option TEXT NOT NULL DEFAULT 'seller_ships' CHECK(shipping_option IN ('seller_ships', 'local_pickup', 'trustdrop_delivery')),
+  images TEXT DEFAULT '[]',
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'sold', 'draft')),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (seller_id) REFERENCES users(id)
 );

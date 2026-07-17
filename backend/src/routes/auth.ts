@@ -41,7 +41,7 @@ router.post('/register', async (req, res) => {
       return;
     }
 
-    if (!['dealer', 'courier'].includes(role)) {
+    if (!['dealer', 'courier', 'buyer'].includes(role)) {
       res.status(400).json({ message: 'Invalid role' });
       return;
     }
@@ -112,6 +112,37 @@ router.post('/login', async (req, res) => {
     res.json({ token, user: payload });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// POST /api/auth/demo-login — one-click demo access by role
+router.post('/demo-login', async (req, res) => {
+  try {
+    const { role } = req.body as { role?: string };
+
+    if (!role || !['dealer', 'courier', 'buyer'].includes(role)) {
+      res.status(400).json({ message: 'Valid role (dealer, courier, or buyer) is required' });
+      return;
+    }
+
+    const demoEmail = `demo-${role}@trustdrop.test`;
+
+    const user = await queryOne<UserRow>(
+      `SELECT id, email, password_hash, role, name FROM users WHERE email = ${sql.literal(demoEmail)} LIMIT 1`,
+    );
+
+    if (!user) {
+      res.status(404).json({ message: `Demo ${role} account not found. Please run the seed script.` });
+      return;
+    }
+
+    const payload = createTokenPayload(user);
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+
+    res.json({ token, user: payload });
+  } catch (error) {
+    console.error('Demo login error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });
