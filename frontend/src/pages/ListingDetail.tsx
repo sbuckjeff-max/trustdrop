@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { getListing } from '../api/listings';
+import { useAuth } from '../context/AuthContext';
 import type { Listing } from '../types';
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -17,12 +18,14 @@ const SHIPPING_LABELS: Record<string, string> = {
 };
 
 function formatPrice(cents: number) {
-  return `$${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `${(cents / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default function ListingDetail() {
   const { id } = useParams();
   const listingId = Number.parseInt(id ?? '', 10);
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,7 +80,11 @@ export default function ListingDetail() {
             ) : null}
             <p>
               <strong>Shipping:</strong> {SHIPPING_LABELS[listing.shippingOption] ?? listing.shippingOption}
+              {listing.freeShipping ? ' (Free shipping offered)' : ''}
             </p>
+            {listing.packageWeightGrams ? (
+              <p><strong>Package weight:</strong> {listing.packageWeightGrams}g</p>
+            ) : null}
             <p>
               <strong>Seller:</strong> {listing.sellerName}
             </p>
@@ -88,6 +95,23 @@ export default function ListingDetail() {
             <div>
               <h2>Description</h2>
               <p style={{ whiteSpace: 'pre-wrap' }}>{listing.description}</p>
+            </div>
+
+            <div style={{ marginTop: '16px', display: 'flex', gap: '12px' }}>
+              {isAuthenticated ? (
+                <button
+                  className="button"
+                  onClick={() => navigate(`/checkout/${listing.id}`)}
+                  style={{ fontSize: '1.1rem', padding: '12px 32px' }}
+                >
+                  Buy Now — {formatPrice(listing.priceCents)}
+                  {listing.freeShipping ? ' + Free Shipping' : ' + shipping'}
+                </button>
+              ) : (
+                <Link className="button" to={`/login?redirect=/checkout/${listing.id}`}>
+                  Log in to Purchase
+                </Link>
+              )}
             </div>
           </div>
         ) : null}

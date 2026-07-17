@@ -88,6 +88,11 @@ router.get('/', async (req, res) => {
       weightGrams: r.weight_grams,
       priceCents: r.price_cents,
       shippingOption: r.shipping_option,
+      freeShipping: r.free_shipping === 1,
+      packageWeightGrams: r.package_weight_grams,
+      packageLengthCm: r.package_length_cm,
+      packageWidthCm: r.package_width_cm,
+      packageHeightCm: r.package_height_cm,
       images: JSON.parse(r.images || '[]'),
       status: r.status,
       createdAt: r.created_at,
@@ -117,7 +122,7 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
       return;
     }
 
-    const { title, description, category, denomination, metalType, weightGrams, priceCents, shippingOption, images } =
+    const { title, description, category, denomination, metalType, weightGrams, priceCents, shippingOption, freeShipping, packageWeightGrams, packageLengthCm, packageWidthCm, packageHeightCm, images } =
       req.body as {
         title?: string;
         description?: string;
@@ -127,6 +132,11 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
         weightGrams?: number;
         priceCents?: number;
         shippingOption?: string;
+        freeShipping?: boolean;
+        packageWeightGrams?: number;
+        packageLengthCm?: number;
+        packageWidthCm?: number;
+        packageHeightCm?: number;
         images?: string[];
       };
 
@@ -143,10 +153,13 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     const imagesJson = JSON.stringify(images ?? []);
 
     const result = await queryOne<{ id: number }>(
-      `INSERT INTO listings (seller_id, title, description, category, denomination, metal_type, weight_grams, price_cents, shipping_option, images)
+      `INSERT INTO listings (seller_id, title, description, category, denomination, metal_type, weight_grams, price_cents, shipping_option, free_shipping, package_weight_grams, package_length_cm, package_width_cm, package_height_cm, images)
        VALUES (${sql.literal(userId)}, ${sql.literal(title)}, ${sql.literal(description)}, ${sql.literal(category)},
                ${sql.literal(denomination ?? null)}, ${sql.literal(metalType ?? null)}, ${sql.literal(weightGrams ?? null)},
-               ${sql.literal(priceCents)}, ${sql.literal(shippingOption ?? 'seller_ships')}, ${sql.literal(imagesJson)})`,
+               ${sql.literal(priceCents)}, ${sql.literal(shippingOption ?? 'seller_ships')},
+               ${sql.literal(freeShipping ? 1 : 0)}, ${sql.literal(packageWeightGrams ?? null)},
+               ${sql.literal(packageLengthCm ?? null)}, ${sql.literal(packageWidthCm ?? null)},
+               ${sql.literal(packageHeightCm ?? null)}, ${sql.literal(imagesJson)})`,
     );
 
     res.status(201).json({ id: result?.id, message: 'Listing created' });
@@ -190,6 +203,11 @@ router.get('/:id', async (req, res) => {
       weightGrams: row.weight_grams,
       priceCents: row.price_cents,
       shippingOption: row.shipping_option,
+      freeShipping: row.free_shipping === 1,
+      packageWeightGrams: row.package_weight_grams,
+      packageLengthCm: row.package_length_cm,
+      packageWidthCm: row.package_width_cm,
+      packageHeightCm: row.package_height_cm,
       images: JSON.parse(row.images || '[]'),
       status: row.status,
       createdAt: row.created_at,

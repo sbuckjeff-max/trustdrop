@@ -8,6 +8,8 @@ import locationRoutes from './routes/location';
 import photoRoutes from './routes/photos';
 import signatureRoutes from './routes/signatures';
 import listingsRoutes from './routes/listings';
+import shippingRoutes from './routes/shipping';
+import ordersRoutes from './routes/orders';
 
 dotenv.config();
 
@@ -28,6 +30,8 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/listings', listingsRoutes);
+app.use('/api/shipping', shippingRoutes);
+app.use('/api/orders', ordersRoutes);
 app.use('/api', locationRoutes);
 app.use('/api', photoRoutes);
 app.use('/api', signatureRoutes);
