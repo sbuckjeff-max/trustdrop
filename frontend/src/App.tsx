@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import Checkout from './pages/Checkout';
 import CourierDashboard from './pages/CourierDashboard';
 import CourierDeliveryDetail from './pages/CourierDeliveryDetail';
 import DealerDashboard from './pages/DealerDashboard';
@@ -10,6 +11,7 @@ import ListingDetail from './pages/ListingDetail';
 import Login from './pages/Login';
 import MarketplaceFeed from './pages/MarketplaceFeed';
 import NewDelivery from './pages/NewDelivery';
+import OrderDetail from './pages/OrderDetail';
 import Register from './pages/Register';
 import TermsOfService from './pages/TermsOfService';
 
@@ -52,6 +54,12 @@ export default function App() {
           {/* Public marketplace */}
           <Route path="/marketplace" element={<MarketplaceFeed />} />
           <Route path="/marketplace/:id" element={<ListingDetail />} />
+
+          {/* Checkout & Orders (authenticated) */}
+          <Route element={<ProtectedRoute allowedRoles={['buyer', 'dealer', 'courier', 'admin']} />}>
+            <Route path="/checkout/:id" element={<Checkout />} />
+            <Route path="/orders/:id" element={<OrderDetail />} />
+          </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['dealer']} />}>
             <Route path="/dealer/dashboard" element={<DealerDashboard />} />

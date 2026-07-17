@@ -34,6 +34,11 @@ export async function createListing(
     weightGrams?: number;
     priceCents: number;
     shippingOption?: string;
+    freeShipping?: boolean;
+    packageWeightGrams?: number;
+    packageLengthCm?: number;
+    packageWidthCm?: number;
+    packageHeightCm?: number;
     images?: string[];
   },
 ) {

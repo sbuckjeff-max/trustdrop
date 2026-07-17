@@ -6,6 +6,20 @@ export type ListingCategory = 'coin' | 'paper_money' | 'bullion' | 'scrap';
 export type ListingStatus = 'active' | 'sold' | 'draft';
 export type ShippingOption = 'seller_ships' | 'local_pickup' | 'trustdrop_delivery';
 
+export type ShippingMethod =
+  | 'trustdrop'
+  | 'usps_priority'
+  | 'usps_ground'
+  | 'usps_express'
+  | 'fedex_ground'
+  | 'fedex_saver'
+  | 'fedex_overnight'
+  | 'ups_ground'
+  | 'ups_3day'
+  | 'ups_next_day';
+
+export type OrderStatus = 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+
 export interface Listing {
   id: number;
   sellerId: number;
@@ -18,6 +32,11 @@ export interface Listing {
   weightGrams: number | null;
   priceCents: number;
   shippingOption: ShippingOption;
+  freeShipping: boolean;
+  packageWeightGrams: number | null;
+  packageLengthCm: number | null;
+  packageWidthCm: number | null;
+  packageHeightCm: number | null;
   images: string[];
   status: ListingStatus;
   createdAt: string;
@@ -30,6 +49,43 @@ export interface ListingsResponse {
   limit: number;
   total: number;
   totalPages: number;
+}
+
+export interface ShippingRate {
+  method: ShippingMethod;
+  label: string;
+  carrier: string;
+  estimated_days: string;
+  rate_cents: number;
+}
+
+export interface ShippingRatesResponse {
+  rates: ShippingRate[];
+  weight_grams: number;
+}
+
+export interface Order {
+  id: number;
+  listingId: number;
+  listingTitle: string;
+  buyerId: number;
+  buyerName: string;
+  sellerId: number;
+  sellerName: string;
+  shippingMethod: ShippingMethod;
+  shippingCostCents: number;
+  shippingAddressLine1: string;
+  shippingAddressLine2: string;
+  shippingCity: string;
+  shippingState: string;
+  shippingZip: string;
+  shippingCountry: string;
+  trackingNumber: string | null;
+  trackingCarrier: string | null;
+  status: OrderStatus;
+  totalCents: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface User {

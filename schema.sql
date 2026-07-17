@@ -123,9 +123,38 @@ CREATE TABLE IF NOT EXISTS listings (
   weight_grams REAL,
   price_cents INTEGER NOT NULL,
   shipping_option TEXT NOT NULL DEFAULT 'seller_ships' CHECK(shipping_option IN ('seller_ships', 'local_pickup', 'trustdrop_delivery')),
+  free_shipping INTEGER NOT NULL DEFAULT 0,
+  package_weight_grams REAL,
+  package_length_cm REAL,
+  package_width_cm REAL,
+  package_height_cm REAL,
   images TEXT DEFAULT '[]',
   status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'sold', 'draft')),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (seller_id) REFERENCES users(id)
+);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  listing_id INTEGER NOT NULL,
+  buyer_id INTEGER NOT NULL,
+  seller_id INTEGER NOT NULL,
+  shipping_method TEXT NOT NULL CHECK(shipping_method IN ('trustdrop', 'usps_priority', 'usps_ground', 'usps_express', 'fedex_ground', 'fedex_saver', 'fedex_overnight', 'ups_ground', 'ups_3day', 'ups_next_day')),
+  shipping_cost_cents INTEGER NOT NULL DEFAULT 0,
+  shipping_address_line1 TEXT NOT NULL,
+  shipping_address_line2 TEXT DEFAULT '',
+  shipping_city TEXT NOT NULL,
+  shipping_state TEXT NOT NULL,
+  shipping_zip TEXT NOT NULL,
+  shipping_country TEXT NOT NULL DEFAULT 'US',
+  tracking_number TEXT,
+  tracking_carrier TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'paid', 'shipped', 'delivered', 'cancelled')),
+  total_cents INTEGER NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (listing_id) REFERENCES listings(id),
+  FOREIGN KEY (buyer_id) REFERENCES users(id),
   FOREIGN KEY (seller_id) REFERENCES users(id)
 );
