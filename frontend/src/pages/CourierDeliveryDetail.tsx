@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { getCourierDelivery, updateCourierDeliveryStatus } from '../api/courier';
 import { reportLocation } from '../api/location';
 import { uploadDeliveryPhoto } from '../api/photos';
-import { uploadDeliverySignature } from '../api/signatures';
+import { getDeliverySignature, uploadDeliverySignature } from '../api/signatures';
 import { useAuth } from '../context/AuthContext';
 import type { Delivery, DeliveryStatus } from '../types';
 import { formatCurrency, formatDate, statusLabel } from '../utils/format';
@@ -26,6 +26,8 @@ export default function CourierDeliveryDetail() {
   const [updating, setUpdating] = useState(false);
   const [locationSharing, setLocationSharing] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  const startSharingRef = useRef<() => void>(() => {});
+  const stopSharingRef = useRef<() => void>(() => {});
 
   // Photo capture state
   const [showCamera, setShowCamera] = useState(false);
@@ -53,6 +55,14 @@ export default function CourierDeliveryDetail() {
     try {
       const record = await getCourierDelivery(token, deliveryId);
       setDelivery(record);
+
+      // Check if signature already exists for this delivery
+      try {
+        await getDeliverySignature(token, deliveryId);
+        setSignatureSaved(true);
+      } catch {
+        setSignatureSaved(false);
+      }
     } catch (requestError: any) {
       setError(requestError.response?.data?.message ?? 'Failed to load delivery details.');
     } finally {
@@ -105,6 +115,10 @@ export default function CourierDeliveryDetail() {
     }
     setLocationSharing(false);
   }, []);
+
+  // Keep refs in sync (after both callbacks defined)
+  startSharingRef.current = startLocationSharing;
+  stopSharingRef.current = stopLocationSharing;
 
   // Camera handlers
   async function startCamera() {
@@ -253,19 +267,19 @@ export default function CourierDeliveryDetail() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  // Auto-start location sharing when delivery becomes active
+  // Auto-start location sharing when delivery becomes active (stable, no glitch)
   useEffect(() => {
     if (isActive && !locationSharing) {
-      startLocationSharing();
+      startSharingRef.current();
     }
     if (!isActive && locationSharing) {
-      stopLocationSharing();
+      stopSharingRef.current();
     }
 
     return () => {
-      stopLocationSharing();
+      stopSharingRef.current();
     };
-  }, [isActive, locationSharing, startLocationSharing, stopLocationSharing]);
+  }, [isActive, locationSharing]);
 
   const nextStatus = useMemo(() => (delivery ? NEXT_STATUS[delivery.status] : undefined), [delivery]);
 
