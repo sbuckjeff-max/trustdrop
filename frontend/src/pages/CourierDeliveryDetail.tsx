@@ -39,6 +39,7 @@ export default function CourierDeliveryDetail() {
   // Signature pad state
   const sigCanvasRef = useRef<HTMLCanvasElement>(null);
   const sigDrawingRef = useRef(false);
+  const sigInitRef = useRef(false);
   const [signatureSaved, setSignatureSaved] = useState(false);
   const [signatureUploading, setSignatureUploading] = useState(false);
 
@@ -100,7 +101,7 @@ export default function CourierDeliveryDetail() {
       },
       () => {
         setError('Location access denied. Enable location permissions to share your position.');
-        stopLocationSharing();
+        stopSharingRef.current();
       },
       { enableHighAccuracy: true, maximumAge: 15000, timeout: 10000 },
     );
@@ -429,7 +430,10 @@ export default function CourierDeliveryDetail() {
                       <canvas
                         ref={(el) => {
                           sigCanvasRef.current = el;
-                          initSigCanvas(el);
+                          if (el && !sigInitRef.current) {
+                            sigInitRef.current = true;
+                            initSigCanvas(el);
+                          }
                         }}
                         width={500}
                         height={180}
