@@ -1,6 +1,36 @@
-export type UserRole = 'dealer' | 'courier' | 'admin';
+export type UserRole = 'dealer' | 'courier' | 'buyer' | 'admin';
 
 export type DeliveryStatus = 'requested' | 'assigned' | 'picked_up' | 'in_transit' | 'delivered';
+
+export type ListingCategory = 'coin' | 'paper_money' | 'bullion' | 'scrap';
+export type ListingStatus = 'active' | 'sold' | 'draft';
+export type ShippingOption = 'seller_ships' | 'local_pickup' | 'trustdrop_delivery';
+
+export interface Listing {
+  id: number;
+  sellerId: number;
+  sellerName: string;
+  title: string;
+  description: string;
+  category: ListingCategory;
+  denomination: string | null;
+  metalType: string | null;
+  weightGrams: number | null;
+  priceCents: number;
+  shippingOption: ShippingOption;
+  images: string[];
+  status: ListingStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ListingsResponse {
+  listings: Listing[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
 
 export interface User {
   id: number;
