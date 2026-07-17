@@ -45,3 +45,16 @@ export async function createListing(
   const response = await apiClient.post('/listings', data, { headers: authHeaders(token) });
   return response.data as { id: number; message: string };
 }
+
+export async function uploadListingImages(
+  token: string | null,
+  listingId: number,
+  files: File[],
+) {
+  const formData = new FormData();
+  files.forEach((f) => formData.append('images', f));
+  const response = await apiClient.post(`/listings/${listingId}/images`, formData, {
+    headers: { ...authHeaders(token), 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data as { images: string[]; added: number; total: number };
+}

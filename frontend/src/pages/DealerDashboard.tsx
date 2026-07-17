@@ -59,6 +59,9 @@ export default function DealerDashboard() {
             <p className="subtitle">Welcome back, {user?.name}.</p>
           </div>
           <div className="inline-actions">
+            <Link className="button secondary" to="/dealer/new-listing">
+              New listing
+            </Link>
             <Link className="button secondary" to="/dealer/new-delivery">
               New delivery
             </Link>

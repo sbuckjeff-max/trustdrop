@@ -1,6 +1,7 @@
 import cors from 'cors';
 import dotenv from 'dotenv';
 import express from 'express';
+import path from 'node:path';
 import authRoutes from './routes/auth';
 import courierRoutes from './routes/courier';
 import deliveriesRoutes from './routes/deliveries';
@@ -18,6 +19,10 @@ const PORT = Number.parseInt(process.env.PORT || '8000', 10);
 
 app.use(cors());
 app.use(express.json({ limit: '8mb' }));
+
+// Serve uploaded images
+const uploadsDir = path.resolve(process.cwd(), '..', 'uploads');
+app.use('/uploads', express.static(uploadsDir));
 
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.originalUrl}`);

@@ -11,6 +11,7 @@ import ListingDetail from './pages/ListingDetail';
 import Login from './pages/Login';
 import MarketplaceFeed from './pages/MarketplaceFeed';
 import NewDelivery from './pages/NewDelivery';
+import NewListing from './pages/NewListing';
 import OrderDetail from './pages/OrderDetail';
 import Register from './pages/Register';
 import TermsOfService from './pages/TermsOfService';
@@ -64,6 +65,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['dealer']} />}>
             <Route path="/dealer/dashboard" element={<DealerDashboard />} />
             <Route path="/dealer/new-delivery" element={<NewDelivery />} />
+            <Route path="/dealer/new-listing" element={<NewListing />} />
             <Route path="/dealer/deliveries/:id" element={<DealerDeliveryDetail />} />
           </Route>
 
